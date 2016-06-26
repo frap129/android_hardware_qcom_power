@@ -181,7 +181,7 @@ void power_hint(power_hint_t hint, void *data)
             int resources[] = {0x702, 0x20F, 0x30F};
             int duration = 3000;
 
-            interaction(duration, sizeof(resources)/sizeof(resources[0]), resources);
+            interaction(duration, ARRAY_SIZE(resource_values), resources);
         }
         break;
         //fall through below, hints will fail if not defined in powerhint.xml
