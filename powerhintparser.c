@@ -32,10 +32,7 @@
 #include <unistd.h>
 #include <cutils/properties.h>
 #include <libxml/parser.h>
-#include <libxml/tree.h>
-#include <unistd.h>
 #include "powerhintparser.h"
-#define LOG_TAG "QTI PowerHAL"
 
 int parsePowerhintXML() {
 
