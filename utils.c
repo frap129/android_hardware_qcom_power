@@ -39,6 +39,7 @@
 #include "list.h"
 #include "hint-data.h"
 #include "power-common.h"
+#include "power-helper.h"
 
 #define LOG_TAG "QTI PowerHAL"
 #include <log/log.h>
