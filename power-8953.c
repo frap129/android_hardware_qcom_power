@@ -189,12 +189,13 @@ int  set_interactive_override(int on)
 
 
 /* Video Encode Hint */
-static void process_video_encode_hint(void *metadata)
+static int process_video_encode_hint(void *metadata)
 {
     char governor[80] = {0};
     int resource_values[20] = {0};
     int num_resources = 0;
     struct video_encode_metadata_t video_encode_metadata;
+    static int video_encode_handle = 0;
 
     ALOGI("Got process_video_encode_hint");
 
@@ -207,7 +208,7 @@ static void process_video_encode_hint(void *metadata)
                             if (get_scaling_governor_check_cores(governor,
                                 sizeof(governor),CPU3) == -1) {
                                     ALOGE("Can't obtain scaling governor.");
-                                    // return HINT_HANDLED;
+                                    //return HINT_NONE;
                             }
                     }
             }
@@ -222,78 +223,26 @@ static void process_video_encode_hint(void *metadata)
         if (parse_video_encode_metadata((char *)metadata,
             &video_encode_metadata) == -1) {
             ALOGE("Error occurred while parsing metadata.");
-            return;
+            return HINT_NONE;
         }
     } else {
-        return;
+        return HINT_NONE;
     }
 
     if (video_encode_metadata.state == 1) {
         if((strncmp(governor, SCHEDUTIL_GOVERNOR,
             strlen(SCHEDUTIL_GOVERNOR)) == 0) &&
             (strlen(governor) == strlen(SCHEDUTIL_GOVERNOR))) {
-            if(is_target_SDM632()) {
-                /* sample_ms = 10mS
-                * SLB for Core0 = -6
-                * SLB for Core1 = -6
-                * SLB for Core2 = -6
-                * SLB for Core3 = -6
-                * hispeed load = 95
-                * hispeed freq = 1036 */
-                int res[] = {0x41820000, 0xa,
-                             0x40c68100, 0xfffffffa,
-                             0x40c68110, 0xfffffffa,
-                             0x40c68120, 0xfffffffa,
-                             0x40c68130, 0xfffffffa,
-                             0x41440100, 0x5f,
-                             0x4143c100, 0x40c,
-                             };
-                memcpy(resource_values, res, MIN_VAL(sizeof(resource_values), sizeof(res)));
-                num_resources = sizeof(res)/sizeof(res[0]);
-                camera_hint_ref_count++;
-                if (camera_hint_ref_count == 1) {
-                    if (!video_encode_hint_sent) {
-                        perform_hint_action(video_encode_metadata.hint_id,
-                        resource_values, num_resources);
-                        video_encode_hint_sent = 1;
-                    }
-                }
-            }
-            else {
-                /* sample_ms = 10mS */
-                int res[] = {0x41820000, 0xa,
-                            };
-                memcpy(resource_values, res, MIN_VAL(sizeof(resource_values), sizeof(res)));
-                num_resources = sizeof(res)/sizeof(res[0]);
-                camera_hint_ref_count++;
-                if (camera_hint_ref_count == 1) {
-                    if (!video_encode_hint_sent) {
-                        perform_hint_action(video_encode_metadata.hint_id,
-                        resource_values, num_resources);
-                        video_encode_hint_sent = 1;
-                    }
-                }
-            }
+            video_encode_handle = perf_hint_enable(
+                    VIDEO_ENCODE_HINT, 0);
+            return HINT_HANDLED;
         }
         else if ((strncmp(governor, INTERACTIVE_GOVERNOR,
             strlen(INTERACTIVE_GOVERNOR)) == 0) &&
             (strlen(governor) == strlen(INTERACTIVE_GOVERNOR))) {
-            /* Sched_load and migration_notification disable
-            * timer rate - 40mS*/
-            int res[] = {0x41430000, 0x1,
-                         0x41434000, 0x1,
-                         0x41424000, 0x28,
-                         };
-            memcpy(resource_values, res, MIN_VAL(sizeof(resource_values), sizeof(res)));
-            camera_hint_ref_count++;
-            if (camera_hint_ref_count == 1) {
-                if (!video_encode_hint_sent) {
-                    perform_hint_action(video_encode_metadata.hint_id,
-                    resource_values,
-                    ARRAY_SIZE(resource_values));
-                    video_encode_hint_sent = 1;
-                }
-           }
+            video_encode_handle = perf_hint_enable(
+                    VIDEO_ENCODE_HINT, 0);
+            return HINT_HANDLED;
         }
     } else if (video_encode_metadata.state == 0) {
         if (((strncmp(governor, INTERACTIVE_GOVERNOR,
@@ -302,15 +251,11 @@ static void process_video_encode_hint(void *metadata)
             ((strncmp(governor, SCHEDUTIL_GOVERNOR,
             strlen(SCHEDUTIL_GOVERNOR)) == 0) &&
             (strlen(governor) == strlen(SCHEDUTIL_GOVERNOR)))) {
-            camera_hint_ref_count--;
-            if (!camera_hint_ref_count) {
-                undo_hint_action(video_encode_metadata.hint_id);
-                video_encode_hint_sent = 0;
-            }
-            return ;
+            release_request(video_encode_handle);
+            return HINT_HANDLED;
         }
     }
-    return;
+    return HINT_NONE;
 }
 
 
