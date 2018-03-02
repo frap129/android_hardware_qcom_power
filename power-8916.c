@@ -37,8 +37,8 @@
 #include <dlfcn.h>
 #include <stdlib.h>
 
-#define LOG_TAG "QTI PowerHAL"
-#include <utils/Log.h>
+#define LOG_TAG "QCOM PowerHAL"
+#include <log/log.h>
 #include <hardware/hardware.h>
 #include <hardware/power.h>
 
