@@ -74,6 +74,11 @@ Return<void> Power::setFeature(Feature feature, bool activate)  {
 
 Return<void> Power::getPlatformLowPowerStats(getPlatformLowPowerStats_cb _hidl_cb) {
     hidl_vec<PowerStatePlatformSleepState> states;
+#ifdef NO_STATS
+    states.resize(0);
+    _hidl_cb(states, Status::SUCCESS);
+    return Void();
+#else
     uint64_t stats[MAX_PLATFORM_STATS * MAX_RPM_PARAMS] = {0};
     uint64_t *values;
     struct PowerStatePlatformSleepState *state;
@@ -164,6 +169,7 @@ Return<void> Power::getPlatformLowPowerStats(getPlatformLowPowerStats_cb _hidl_c
 done:
     _hidl_cb(states, Status::SUCCESS);
     return Void();
+#endif
 }
 
 #ifndef V1_0_HAL
