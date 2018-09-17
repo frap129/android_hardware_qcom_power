@@ -15,11 +15,7 @@
  * limitations under the License.
  */
 
-#ifdef V1_0_HAL
-#define LOG_TAG "android.hardware.power@1.0-service-qti"
-#else
 #define LOG_TAG "android.hardware.power@1.1-service-qti"
-#endif
 
 #include <log/log.h>
 #include "Power.h"
@@ -34,20 +30,14 @@ extern struct stat_pair rpm_stat_map[];
 namespace android {
 namespace hardware {
 namespace power {
-#ifdef V1_0_HAL
-namespace V1_0 {
-#else
 namespace V1_1 {
-#endif
 namespace implementation {
 
 using ::android::hardware::power::V1_0::Feature;
 using ::android::hardware::power::V1_0::PowerHint;
 using ::android::hardware::power::V1_0::PowerStatePlatformSleepState;
 using ::android::hardware::power::V1_0::Status;
-#ifndef V1_0_HAL
 using ::android::hardware::power::V1_1::PowerStateSubsystem;
-#endif
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
@@ -172,9 +162,9 @@ done:
 #endif
 }
 
-#ifndef V1_0_HAL
 // Methods from ::android::hardware::power::V1_1::IPower follow.
 
+#ifndef NO_WLAN_STATS
 static int get_wlan_low_power_stats(struct PowerStateSubsystem &subsystem) {
 
     uint64_t stats[WLAN_POWER_PARAMS_COUNT] = {0};
@@ -206,10 +196,15 @@ static int get_wlan_low_power_stats(struct PowerStateSubsystem &subsystem) {
 
     return 0;
 }
+#endif
 
 Return<void> Power::getSubsystemLowPowerStats(getSubsystemLowPowerStats_cb _hidl_cb) {
-
     hidl_vec<PowerStateSubsystem> subsystems;
+#ifdef NO_WLAN_STATS
+    subsystems.resize(0);
+    _hidl_cb(subsystems, Status::SUCCESS);
+    return Void();
+#else
     int ret;
 
     subsystems.resize(subsystem_type::SUBSYSTEM_COUNT);
@@ -224,16 +219,16 @@ Return<void> Power::getSubsystemLowPowerStats(getSubsystemLowPowerStats_cb _hidl
 done:
     _hidl_cb(subsystems, Status::SUCCESS);
     return Void();
+#endif
 }
 
 Return<void> Power::powerHintAsync(PowerHint hint, int32_t data) {
     // just call the normal power hint in this oneway function
     return powerHint(hint, data);
 }
-#endif
 
 }  // namespace implementation
-}  // namespace V1_0/1
+}  // namespace V1_1
 }  // namespace power
 }  // namespace hardware
 }  // namespace android
